@@ -50,10 +50,8 @@ head:
 
   - [-1, 1, Conv, [512, 3, 2]]
   - [[-1, 10], 1, Concat, [1]] # cat head P5
-  - [-1, 1, CAFPN, [1024]]  
+  - [-1, 1, CAFPN, [1024]]
   - [-1, 1, C3k2, [1024, True, 0.5, True]] # 26 (P5/32-large)
 
   - [[18, 22, 26], 1, Detect, [nc]] # Detect(P3, P4, P5)
-
-
 
