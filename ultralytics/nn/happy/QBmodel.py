@@ -1,6 +1,6 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 # =========================================================
@@ -8,44 +8,21 @@ import torch.nn.functional as F
 # 模糊估计分支
 # =========================================================
 class BlurEstimator(nn.Module):
-    """
-    估计局部模糊程度
-    用于动态融合
+    """估计局部模糊程度 用于动态融合.
     """
 
     def __init__(self, channels):
         super().__init__()
 
         self.local = nn.Sequential(
-
-            nn.Conv2d(
-                channels,
-                channels,
-                3,
-                padding=1,
-                groups=channels,
-                bias=False
-            ),
-
+            nn.Conv2d(channels, channels, 3, padding=1, groups=channels, bias=False),
             nn.BatchNorm2d(channels),
-
             nn.GELU(),
-
-            nn.Conv2d(
-                channels,
-                channels,
-                1,
-                bias=False
-            )
+            nn.Conv2d(channels, channels, 1, bias=False),
         )
 
         self.blur_proj = nn.Sequential(
-
-            nn.Conv2d(channels, channels, 1, bias=False),
-
-            nn.BatchNorm2d(channels),
-
-            nn.Sigmoid()
+            nn.Conv2d(channels, channels, 1, bias=False), nn.BatchNorm2d(channels), nn.Sigmoid()
         )
 
     def forward(self, x):
@@ -65,49 +42,23 @@ class BlurEstimator(nn.Module):
 # 去模糊分支
 # =========================================================
 class DeblurBranch(nn.Module):
-    """
-    高频恢复 + 动态感受野
-    """
+    """高频恢复 + 动态感受野."""
 
     def __init__(self, channels):
         super().__init__()
 
         # 小卷积核
-        self.conv3 = nn.Conv2d(
-            channels,
-            channels,
-            3,
-            padding=1,
-            groups=channels,
-            bias=False
-        )
+        self.conv3 = nn.Conv2d(channels, channels, 3, padding=1, groups=channels, bias=False)
 
         # 大卷积核
-        self.conv5 = nn.Conv2d(
-            channels,
-            channels,
-            5,
-            padding=2,
-            groups=channels,
-            bias=False
-        )
+        self.conv5 = nn.Conv2d(channels, channels, 5, padding=2, groups=channels, bias=False)
 
         # 高频增强
         self.high_enhance = nn.Sequential(
-
-            nn.Conv2d(channels, channels, 1, bias=False),
-
-            nn.BatchNorm2d(channels),
-
-            nn.GELU()
+            nn.Conv2d(channels, channels, 1, bias=False), nn.BatchNorm2d(channels), nn.GELU()
         )
 
-        self.fuse = nn.Conv2d(
-            channels,
-            channels,
-            1,
-            bias=False
-        )
+        self.fuse = nn.Conv2d(channels, channels, 1, bias=False)
 
     def forward(self, x, blur_map):
 
@@ -133,42 +84,18 @@ class DeblurBranch(nn.Module):
 # 结构恢复分支
 # =========================================================
 class StructureRecovery(nn.Module):
-    """
-    结构边缘恢复
-    """
+    """结构边缘恢复."""
 
     def __init__(self, channels):
         super().__init__()
 
         self.edge = nn.Sequential(
-
-            nn.Conv2d(
-                channels,
-                channels,
-                3,
-                padding=1,
-                groups=channels,
-                bias=False
-            ),
-
+            nn.Conv2d(channels, channels, 3, padding=1, groups=channels, bias=False),
             nn.BatchNorm2d(channels),
-
-            nn.GELU()
+            nn.GELU(),
         )
 
-        self.recover = nn.Sequential(
-
-            nn.Conv2d(
-                channels,
-                channels,
-                1,
-                bias=False
-            ),
-
-            nn.BatchNorm2d(channels),
-
-            nn.GELU()
-        )
+        self.recover = nn.Sequential(nn.Conv2d(channels, channels, 1, bias=False), nn.BatchNorm2d(channels), nn.GELU())
 
     def forward(self, x):
 
@@ -186,35 +113,17 @@ class StructureRecovery(nn.Module):
 # 上下文辅助分支
 # =========================================================
 class ContextBranch(nn.Module):
-    """
-    大感受野上下文建模
-    港口小目标非常重要
+    """大感受野上下文建模 港口小目标非常重要.
     """
 
     def __init__(self, channels):
         super().__init__()
 
         self.context = nn.Sequential(
-
-            nn.Conv2d(
-                channels,
-                channels,
-                7,
-                padding=3,
-                groups=channels,
-                bias=False
-            ),
-
+            nn.Conv2d(channels, channels, 7, padding=3, groups=channels, bias=False),
             nn.BatchNorm2d(channels),
-
             nn.GELU(),
-
-            nn.Conv2d(
-                channels,
-                channels,
-                1,
-                bias=False
-            )
+            nn.Conv2d(channels, channels, 1, bias=False),
         )
 
     def forward(self, x):
@@ -226,34 +135,24 @@ class ContextBranch(nn.Module):
 # Confidence Adaptive Fusion
 # 动态融合模块（核心创新）
 # =========================================================
-class CAF(nn.Module):
-    """
-    动态融合：
-    去模糊 / 结构恢复 / 上下文
+class CALF(nn.Module):
+    """动态融合： 去模糊 / 结构恢复 / 上下文.
     """
 
     def __init__(self, channels):
         super().__init__()
 
         self.weight_generator = nn.Sequential(
-
             nn.AdaptiveAvgPool2d(1),
-
             nn.Conv2d(channels * 3, channels, 1, bias=False),
-
             nn.GELU(),
-
             nn.Conv2d(channels, 3, 1, bias=False),
-
-            nn.Softmax(dim=1)
+            nn.Softmax(dim=1),
         )
 
     def forward(self, deblur, structure, context):
 
-        fusion = torch.cat(
-            [deblur, structure, context],
-            dim=1
-        )
+        fusion = torch.cat([deblur, structure, context], dim=1)
 
         weights = self.weight_generator(fusion)
 
@@ -261,11 +160,7 @@ class CAF(nn.Module):
         w2 = weights[:, 1:2]
         w3 = weights[:, 2:3]
 
-        out = (
-            w1 * deblur +
-            w2 * structure +
-            w3 * context
-        )
+        out = w1 * deblur + w2 * structure + w3 * context
 
         return out
 
@@ -275,7 +170,6 @@ class CAF(nn.Module):
 # Blur-aware Residual Attention Module
 # =========================================================
 class BRAM(nn.Module):
-
     def __init__(self, c1, c2, ratio=16, *args, **kwargs):
 
         super().__init__()
@@ -306,32 +200,16 @@ class BRAM(nn.Module):
         # -------------------------------------------------
         # 5. 动态融合
         # -------------------------------------------------
-        self.caf = CAF(c1)
+        self.calf = CALF(c1)
 
         # -------------------------------------------------
         # 6. 细化增强
         # -------------------------------------------------
         self.refine = nn.Sequential(
-
-            nn.Conv2d(
-                c1,
-                c1,
-                3,
-                padding=1,
-                groups=c1,
-                bias=False
-            ),
-
+            nn.Conv2d(c1, c1, 3, padding=1, groups=c1, bias=False),
             nn.BatchNorm2d(c1),
-
             nn.GELU(),
-
-            nn.Conv2d(
-                c1,
-                c1,
-                1,
-                bias=False
-            )
+            nn.Conv2d(c1, c1, 1, bias=False),
         )
 
         # -------------------------------------------------
@@ -340,40 +218,24 @@ class BRAM(nn.Module):
         hidden = max(8, c1 // ratio)
 
         self.ca = nn.Sequential(
-
             nn.AdaptiveAvgPool2d(1),
-
             nn.Conv2d(c1, hidden, 1, bias=False),
-
             nn.GELU(),
-
             nn.Conv2d(hidden, c1, 1, bias=False),
-
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
         # -------------------------------------------------
         # 8. Output Projection
         # -------------------------------------------------
-        self.out_proj = nn.Sequential(
-
-            nn.Conv2d(c1, c2, 1, bias=False),
-
-            nn.BatchNorm2d(c2),
-
-            nn.SiLU()
-        )
+        self.out_proj = nn.Sequential(nn.Conv2d(c1, c2, 1, bias=False), nn.BatchNorm2d(c2), nn.SiLU())
 
         # -------------------------------------------------
         # 9. Shortcut
         # -------------------------------------------------
-        self.shortcut = nn.Sequential(
-
-            nn.Conv2d(c1, c2, 1, bias=False),
-
-            nn.BatchNorm2d(c2)
-
-        ) if c1 != c2 else nn.Identity()
+        self.shortcut = (
+            nn.Sequential(nn.Conv2d(c1, c2, 1, bias=False), nn.BatchNorm2d(c2)) if c1 != c2 else nn.Identity()
+        )
 
     def forward(self, x):
 
@@ -400,11 +262,7 @@ class BRAM(nn.Module):
         # -------------------------------------------------
         # 5. Dynamic Fusion
         # -------------------------------------------------
-        feat = self.caf(
-            deblur_feat,
-            structure_feat,
-            context_feat
-        )
+        feat = self.calf(deblur_feat, structure_feat, context_feat)
 
         # -------------------------------------------------
         # 6. Refinement
