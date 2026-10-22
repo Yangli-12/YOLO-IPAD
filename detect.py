@@ -1,5 +1,7 @@
-import cv2
 import time
+
+import cv2
+
 from ultralytics import YOLO
 
 # =========================
@@ -30,7 +32,6 @@ prev_time = 0
 # 4. 实时检测循环
 # =========================
 while True:
-
     ret, frame = cap.read()
 
     if not ret:
@@ -40,13 +41,7 @@ while True:
     # =========================
     # YOLO推理
     # =========================
-    results = model.predict(
-        source=frame,
-        imgsz=640,
-        conf=0.5,
-        iou=0.45,
-        verbose=False
-    )
+    results = model.predict(source=frame, imgsz=640, conf=0.5, iou=0.45, verbose=False)
 
     # 绘制检测结果
     annotated_frame = results[0].plot()
@@ -59,15 +54,7 @@ while True:
     prev_time = curr_time
 
     # 显示FPS
-    cv2.putText(
-        annotated_frame,
-        f"FPS: {fps:.2f}",
-        (20, 40),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 255, 0),
-        2
-    )
+    cv2.putText(annotated_frame, f"FPS: {fps:.2f}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     # =========================
     # 显示窗口
@@ -77,7 +64,7 @@ while True:
     # 按 q 退出
     key = cv2.waitKey(1)
 
-    if key == ord('q'):
+    if key == ord("q"):
         break
 
 # =========================
