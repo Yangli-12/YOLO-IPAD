@@ -1,11 +1,12 @@
 import os
-import cv2
 import shutil
-import random
-import numpy as np
 from collections import defaultdict
-from ultralytics import YOLO
+
+import cv2
+import numpy as np
 from tqdm import tqdm
+
+from ultralytics import YOLO
 
 # =========================================================
 # 1. 路径配置
@@ -26,12 +27,7 @@ save_val_label_dir = r"E:/4-data/rebalance/labels/val"
 # 2. 创建目录
 # =========================================================
 
-dirs = [
-    save_train_img_dir,
-    save_val_img_dir,
-    save_train_label_dir,
-    save_val_label_dir
-]
+dirs = [save_train_img_dir, save_val_img_dir, save_train_label_dir, save_val_label_dir]
 
 for d in dirs:
     os.makedirs(d, exist_ok=True)
@@ -46,19 +42,13 @@ model = YOLO(MODEL_PATH)
 # 4. 类别定义
 # =========================================================
 
-CLASS_NAMES = {
-    0: "safety_helmet",
-    1: "no_helmet",
-    2: "person",
-    3: "reflective_cloth",
-    4: "life_jacket",
-    5: "car"
-}
+CLASS_NAMES = {0: "safety_helmet", 1: "no_helmet", 2: "person", 3: "reflective_cloth", 4: "life_jacket", 5: "car"}
 
 
 # =========================================================
 # 5. IOU计算
 # =========================================================
+
 
 def compute_iou(box1, box2):
     x1 = max(box1[0], box2[0])
@@ -116,17 +106,12 @@ for label_name in tqdm(label_files, desc="Evaluating image precision"):
     target_accuracies = []
 
     # 读取 GT 标签
-    with open(label_path, "r") as f:
+    with open(label_path) as f:
         lines = f.readlines()
 
     # 如果是纯背景图（无目标），其精度无法按目标计算，直接设定为 100%（不进 80-95 的测试集）
     if len(lines) == 0:
-        samples.append({
-            "img": img_path,
-            "label": label_path,
-            "img_acc": 100.0,
-            "classes": []
-        })
+        samples.append({"img": img_path, "label": label_path, "img_acc": 100.0, "classes": []})
         continue
 
     # 遍历当前图的每一个真实目标（GT）
@@ -171,12 +156,7 @@ for label_name in tqdm(label_files, desc="Evaluating image precision"):
     # 图像最终的平均精度
     final_img_acc = np.mean(target_accuracies) if target_accuracies else 0.0
 
-    samples.append({
-        "img": img_path,
-        "label": label_path,
-        "img_acc": final_img_acc,
-        "classes": list(img_classes)
-    })
+    samples.append({"img": img_path, "label": label_path, "img_acc": final_img_acc, "classes": list(img_classes)})
 
 # =========================================================
 # 8. 严格按照 80% ~ 95% 精度区间划分数据集
@@ -232,6 +212,7 @@ for cls_id, count in val_class_count.items():
 # =========================================================
 # 10. 保存函数与文件落地
 # =========================================================
+
 
 def save_dataset(sample_list, save_img_dir, save_label_dir, desc=""):
     print(f"\n正在保存 {desc}...")
