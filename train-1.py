@@ -1,19 +1,21 @@
 import os
+
 import cv2
+
 from ultralytics import YOLO
 
 # =========================
 # 配置部分
 # =========================
-VIDEO_ROOT = r"D:\BaiduNetdiskDownload\video1"   # 输入视频根目录
-SAVE_ROOT = r"E:\4-data"                        # 输出目录
-MODEL_PATH = r"best-all3.pt"                     # 权重
+VIDEO_ROOT = r"D:\BaiduNetdiskDownload\video1"  # 输入视频根目录
+SAVE_ROOT = r"E:\4-data"  # 输出目录
+MODEL_PATH = r"best-all3.pt"  # 权重
 
 IMG_SIZE = 640
 CONF_THRES = 0.25
 
-FRAME_INTERVAL = 5      # ⭐ 每5帧取1帧（防止数据爆炸）
-MIN_BOX_SIZE = 10       # ⭐ 最小目标尺寸过滤
+FRAME_INTERVAL = 5  # ⭐ 每5帧取1帧（防止数据爆炸）
+MIN_BOX_SIZE = 10  # ⭐ 最小目标尺寸过滤
 
 # 是否只保留某些类别（None = 全部）
 TARGET_CLASSES = None  # e.g. [0] 只保留person
@@ -33,6 +35,7 @@ save_txt_dir = os.path.join(SAVE_ROOT, "labels")
 os.makedirs(save_img_dir, exist_ok=True)
 os.makedirs(save_txt_dir, exist_ok=True)
 
+
 # =========================
 # 获取所有视频路径（递归）
 # =========================
@@ -40,15 +43,16 @@ def get_all_videos(root):
     video_list = []
     for root_dir, _, files in os.walk(root):
         for f in files:
-            if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.ts')):
+            if f.lower().endswith((".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".ts")):
                 video_list.append(os.path.join(root_dir, f))
     return video_list
+
 
 # =========================
 # 保存 YOLO 标签
 # =========================
 def save_yolo_txt(txt_path, boxes, img_w, img_h):
-    with open(txt_path, 'w') as f:
+    with open(txt_path, "w") as f:
         for cls, x1, y1, x2, y2 in boxes:
             xc = (x1 + x2) / 2 / img_w
             yc = (y1 + y2) / 2 / img_h
@@ -56,10 +60,12 @@ def save_yolo_txt(txt_path, boxes, img_w, img_h):
             h = (y2 - y1) / img_h
             f.write(f"{int(cls)} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}\n")
 
+
 # =========================
 # 全局ID（防止重名）
 # =========================
 global_id = 0
+
 
 # =========================
 # 处理视频
@@ -128,6 +134,7 @@ def process_video(video_path):
 
     cap.release()
     print(f"[✓] 完成: {video_name} | 保存 {save_count} 帧")
+
 
 # =========================
 # 主函数
