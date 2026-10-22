@@ -1,6 +1,6 @@
 import os
+
 from ultralytics import YOLO
-import numpy as np
 
 # ===== 路径 =====
 image_dir = r"C:\Users\54548\Desktop\4\NBGDQ\all\images"
@@ -24,11 +24,11 @@ def compute_iou(box1, box2):
     x1, y1, w1, h1 = box1
     x2, y2, w2, h2 = box2
 
-    xa1, ya1 = x1 - w1/2, y1 - h1/2
-    xa2, ya2 = x1 + w1/2, y1 + h1/2
+    xa1, ya1 = x1 - w1 / 2, y1 - h1 / 2
+    xa2, ya2 = x1 + w1 / 2, y1 + h1 / 2
 
-    xb1, yb1 = x2 - w2/2, y2 - h2/2
-    xb2, yb2 = x2 + w2/2, y2 + h2/2
+    xb1, yb1 = x2 - w2 / 2, y2 - h2 / 2
+    xb2, yb2 = x2 + w2 / 2, y2 + h2 / 2
 
     inter_x1 = max(xa1, xb1)
     inter_y1 = max(ya1, yb1)
@@ -58,7 +58,7 @@ for file in os.listdir(image_dir):
 
     # ===== 1. 读取原标签（完全保留）=====
     if os.path.exists(txt_path):
-        with open(txt_path, "r") as f:
+        with open(txt_path) as f:
             lines = f.readlines()
 
         for line in lines:
