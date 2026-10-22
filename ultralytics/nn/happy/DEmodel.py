@@ -88,80 +88,46 @@
 
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class EdgePrior(nn.Module):
-    """
-    边缘先验增强
-    强化港口场景小目标边缘
+    """边缘先验增强 强化港口场景小目标边缘.
     """
 
     def __init__(self, channels):
         super().__init__()
 
-        sobel_x = torch.tensor(
-            [[[-1, 0, 1],
-              [-2, 0, 2],
-              [-1, 0, 1]]],
-            dtype=torch.float32
-        )
+        sobel_x = torch.tensor([[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]], dtype=torch.float32)
 
-        sobel_y = torch.tensor(
-            [[[-1, -2, -1],
-              [0, 0, 0],
-              [1, 2, 1]]],
-            dtype=torch.float32
-        )
+        sobel_y = torch.tensor([[[-1, -2, -1], [0, 0, 0], [1, 2, 1]]], dtype=torch.float32)
 
-        self.register_buffer(
-            'weight_x',
-            sobel_x.unsqueeze(0).repeat(channels, 1, 1, 1)
-        )
+        self.register_buffer("weight_x", sobel_x.unsqueeze(0).repeat(channels, 1, 1, 1))
 
-        self.register_buffer(
-            'weight_y',
-            sobel_y.unsqueeze(0).repeat(channels, 1, 1, 1)
-        )
+        self.register_buffer("weight_y", sobel_y.unsqueeze(0).repeat(channels, 1, 1, 1))
 
         self.channels = channels
 
     def forward(self, x):
 
-        edge_x = F.conv2d(
-            x,
-            self.weight_x,
-            padding=1,
-            groups=self.channels
-        )
+        edge_x = F.conv2d(x, self.weight_x, padding=1, groups=self.channels)
 
-        edge_y = F.conv2d(
-            x,
-            self.weight_y,
-            padding=1,
-            groups=self.channels
-        )
+        edge_y = F.conv2d(x, self.weight_y, padding=1, groups=self.channels)
 
-        edge = torch.sqrt(edge_x ** 2 + edge_y ** 2 + 1e-6)
+        edge = torch.sqrt(edge_x**2 + edge_y**2 + 1e-6)
 
         return edge
 
 
 class FrequencyBranch(nn.Module):
-    """
-    高频增强分支
-    强化远距离/低对比度小目标
+    """高频增强分支 强化远距离/低对比度小目标.
     """
 
     def __init__(self, channels):
         super().__init__()
 
-        self.proj = nn.Sequential(
-            nn.Conv2d(channels, channels, 1, bias=False),
-            nn.BatchNorm2d(channels),
-            nn.GELU()
-        )
+        self.proj = nn.Sequential(nn.Conv2d(channels, channels, 1, bias=False), nn.BatchNorm2d(channels), nn.GELU())
 
     def forward(self, x):
 
@@ -175,9 +141,7 @@ class FrequencyBranch(nn.Module):
 
 
 class LinearDiffAttention(nn.Module):
-    """
-    轻量级差分注意力
-    针对港口小目标优化
+    """轻量级差分注意力 针对港口小目标优化.
     """
 
     def __init__(self, channels):
@@ -187,14 +151,7 @@ class LinearDiffAttention(nn.Module):
         self.k = nn.Conv2d(channels, channels, 1, bias=False)
         self.v = nn.Conv2d(channels, channels, 1, bias=False)
 
-        self.dw = nn.Conv2d(
-            channels,
-            channels,
-            3,
-            padding=1,
-            groups=channels,
-            bias=False
-        )
+        self.dw = nn.Conv2d(channels, channels, 3, padding=1, groups=channels, bias=False)
 
     def forward(self, x, diff):
 
@@ -212,7 +169,6 @@ class LinearDiffAttention(nn.Module):
 
 
 class SDFA_PP(nn.Module):
-
     def __init__(self, c1, c2, ratio=16, *args, **kwargs):
         super().__init__()
 
@@ -223,21 +179,10 @@ class SDFA_PP(nn.Module):
         # 1. 结构建模分支
         # ---------------------------------
         self.structure = nn.Sequential(
-
-            nn.Conv2d(
-                c1,
-                c1,
-                3,
-                padding=1,
-                groups=c1,
-                bias=False
-            ),
-
+            nn.Conv2d(c1, c1, 3, padding=1, groups=c1, bias=False),
             nn.BatchNorm2d(c1),
-
             nn.GELU(),
-
-            nn.Conv2d(c1, c1, 1, bias=False)
+            nn.Conv2d(c1, c1, 1, bias=False),
         )
 
         # ---------------------------------
@@ -254,19 +199,7 @@ class SDFA_PP(nn.Module):
         # 4. 差分增强
         # ---------------------------------
         self.diff_enhance = nn.Sequential(
-
-            nn.Conv2d(
-                c1,
-                c1,
-                3,
-                padding=1,
-                groups=c1,
-                bias=False
-            ),
-
-            nn.GELU(),
-
-            nn.Conv2d(c1, c1, 1, bias=False)
+            nn.Conv2d(c1, c1, 3, padding=1, groups=c1, bias=False), nn.GELU(), nn.Conv2d(c1, c1, 1, bias=False)
         )
 
         # ---------------------------------
@@ -280,40 +213,24 @@ class SDFA_PP(nn.Module):
         hidden = max(8, c1 // ratio)
 
         self.ca = nn.Sequential(
-
             nn.AdaptiveAvgPool2d(1),
-
             nn.Conv2d(c1, hidden, 1, bias=False),
-
             nn.GELU(),
-
             nn.Conv2d(hidden, c1, 1, bias=False),
-
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
         # ---------------------------------
         # 7. 输出投影
         # ---------------------------------
-        self.out_proj = nn.Sequential(
-
-            nn.Conv2d(c1, c2, 1, bias=False),
-
-            nn.BatchNorm2d(c2),
-
-            nn.SiLU()
-        )
+        self.out_proj = nn.Sequential(nn.Conv2d(c1, c2, 1, bias=False), nn.BatchNorm2d(c2), nn.SiLU())
 
         # ---------------------------------
         # 8. Shortcut
         # ---------------------------------
-        self.shortcut = nn.Sequential(
-
-            nn.Conv2d(c1, c2, 1, bias=False),
-
-            nn.BatchNorm2d(c2)
-
-        ) if c1 != c2 else nn.Identity()
+        self.shortcut = (
+            nn.Sequential(nn.Conv2d(c1, c2, 1, bias=False), nn.BatchNorm2d(c2)) if c1 != c2 else nn.Identity()
+        )
 
     def forward(self, x):
 
